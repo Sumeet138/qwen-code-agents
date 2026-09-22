@@ -1,0 +1,6 @@
+{
+  "name": "avoid-ai-writing",
+  "version": "1.0.0",
+  "description": "Audit and rewrite prose that reads as machine-generated, across READMEs, changelogs, PR descriptions, docs, and blog copy, with detect-only, rewrite, and edit-in-place modes.",
+  "skills": "skills"
+}

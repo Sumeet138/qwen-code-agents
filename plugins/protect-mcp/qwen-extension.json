@@ -1,0 +1,8 @@
+{
+  "name": "protect-mcp",
+  "version": "0.1.2",
+  "description": "Cedar policy enforcement + Ed25519 signed receipts for every Claude Code tool call. First cryptographic governance plugin — receipts independently verifiable offline.",
+  "agents": "agents",
+  "commands": "commands",
+  "skills": "skills"
+}

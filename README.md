@@ -1,8 +1,8 @@
 # Qwen Code Agents: AI-Powered Orchestration and Automation
 
-> **Adapted for Qwen Code** — 77 plugins, 182 agents, 149 skills, and 96 commands now working with Qwen 3.6
+> **Adapted for Qwen Code** — 92 plugins, 202 agents, 183 skills, and 105 commands now working with Qwen 3.6
 
-A comprehensive production-ready system combining **182 specialized AI agents**, **16 multi-agent workflow orchestrators**, **149 agent skills**, and **96 commands** organized into **77 focused, single-purpose plugins** — adapted for [Qwen Code](https://qwenlm.github.io/qwen-code-docs/en/).
+A comprehensive production-ready system combining **202 specialized AI agents**, **16 multi-agent workflow orchestrators**, **183 agent skills**, and **105 commands** organized into **92 focused, single-purpose plugins** — adapted for [Qwen Code](https://qwenlm.github.io/qwen-code-docs/en/).
 
 ## Credits & Attribution
 
@@ -17,7 +17,7 @@ A comprehensive production-ready system combining **182 specialized AI agents**,
 
 ## Why This Exists
 
-Claude Code is expensive. Qwen Code is free (OAuth: 60 req/min, 1000/day) or very cheap (API key). This project brings the same powerful agent orchestration system to Qwen Code so you can use 182 specialized AI agents **without paying for Claude**.
+Claude Code is expensive. Qwen Code is free (OAuth: 60 req/min, 1000/day) or very cheap (API key). This project brings the same powerful agent orchestration system to Qwen Code so you can use 202 specialized AI agents **without paying for Claude**.
 
 ### Before vs After
 
@@ -27,10 +27,10 @@ Claude Code is expensive. Qwen Code is free (OAuth: 60 req/min, 1000/day) or ver
 | **Model for critical tasks** | Claude Opus 4.6 | Qwen-Max |
 | **Model for complex tasks** | Claude Sonnet 4.6 | Qwen-Plus |
 | **Model for fast tasks** | Claude Haiku 4.5 | Qwen-Flash |
-| **Plugins** | 77 | 77 (same) |
-| **Agents** | 182 | 182 (same expertise) |
-| **Skills** | 149 | 149 (same knowledge) |
-| **Commands** | 96 | 96 (same workflows) |
+| **Plugins** | 92 | 92 (same) |
+| **Agents** | 202 | 202 (same expertise) |
+| **Skills** | 183 | 183 (same knowledge) |
+| **Commands** | 105 | 105 (same workflows) |
 | **Agent knowledge** | Identical | Identical |
 | **Skill content** | Identical | Identical |
 | **Workflow automation** | Identical | Identical |
@@ -40,8 +40,8 @@ Claude Code is expensive. Qwen Code is free (OAuth: 60 req/min, 1000/day) or ver
 
 | Component | Changed? | Details |
 |-----------|----------|---------|
-| Agent system prompts | No | All 182 agents have identical expertise |
-| Skill knowledge packages | No | All 149 skills with progressive disclosure |
+| Agent system prompts | No | All 202 agents have identical expertise |
+| Skill knowledge packages | No | All 183 skills with progressive disclosure |
 | Command workflows | No | All 96 workflow automations |
 | Plugin structure | No | Same directory organization |
 | `model: opus` references | Yes | Mapped to `model: qwen-max` |
@@ -55,17 +55,17 @@ Claude Code is expensive. Qwen Code is free (OAuth: 60 req/min, 1000/day) or ver
 This unified repository provides everything needed for intelligent automation and multi-agent orchestration across modern software development:
 
 - **77 Focused Plugins** - Granular, single-purpose plugins optimized for minimal token usage and composability
-- **182 Specialized Agents** - Domain experts with deep knowledge across architecture, languages, infrastructure, quality, data/AI, documentation, business operations, and SEO
-- **149 Agent Skills** - Modular knowledge packages with progressive disclosure for specialized expertise
+- **202 Specialized Agents** - Domain experts with deep knowledge across architecture, languages, infrastructure, quality, data/AI, documentation, business operations, and SEO
+- **183 Agent Skills** - Modular knowledge packages with progressive disclosure for specialized expertise
 - **16 Workflow Orchestrators** - Multi-agent coordination systems for complex operations like full-stack development, security hardening, ML pipelines, and incident response
 - **96 Commands** - Optimized utilities including project scaffolding, security scanning, test automation, and infrastructure setup
 
 ### Key Features
 
 - **Granular Plugin Architecture**: 77 focused plugins optimized for minimal token usage
-- **Comprehensive Tooling**: 96 commands including test generation, scaffolding, and security scanning
+- **Comprehensive Tooling**: 105 commands including test generation, scaffolding, and security scanning
 - **100% Agent Coverage**: All plugins include specialized agents
-- **Agent Skills**: 149 specialized skills following for progressive disclosure and token efficiency
+- **Agent Skills**: 183 specialized skills following for progressive disclosure and token efficiency
 - **Clear Organization**: 24 categories with 1-10 plugins each for easy discovery
 - **Efficient Design**: Average 3.6 components per plugin (follows Anthropic's 2-8 pattern)
 
@@ -110,7 +110,7 @@ cd qwen-code-agents
 ### Step 4: Install Extensions
 
 ```bash
-# Install ALL 76 plugins as Qwen Code extensions
+# Install ALL 92 plugins as Qwen Code extensions
 python tools/install-qwen-extensions.py
 
 # Or install specific plugins only
@@ -168,9 +168,9 @@ qwen auth api-key
 
 ### Core Guides
 
-- **[Plugin Reference](docs/plugins.md)** - Complete catalog of all 77 plugins
-- **[Agent Reference](docs/agents.md)** - All 182 agents organized by category
-- **[Agent Skills](docs/agent-skills.md)** - 149 specialized skills with progressive disclosure
+- **[Plugin Reference](docs/plugins.md)** - Complete catalog of all 92 plugins
+- **[Agent Reference](docs/agents.md)** - All 202 agents organized by category
+- **[Agent Skills](docs/agent-skills.md)** - 183 specialized skills with progressive disclosure
 - **[Usage Guide](docs/usage.md)** - Commands, workflows, and best practices
 - **[Architecture](docs/architecture.md)** - Design principles and patterns
 - **[PluginEval](docs/plugin-eval.md)** - Quality evaluation framework (layers, dimensions, scoring)
@@ -251,7 +251,7 @@ Transforms Claude Code into a project management tool with a structured **Contex
 
 [→ View Conductor documentation](plugins/conductor/README.md)
 
-### Agent Skills (149 skills across 36 plugins)
+### Agent Skills (183 skills across 92 plugins)
 
 Specialized knowledge packages following Anthropic's progressive disclosure architecture:
 
@@ -287,10 +287,10 @@ Strategic model assignment for optimal performance and cost:
 
 | Tier | Claude Model | Qwen Model | Agents | Use Case |
 |------|-------------|------------|--------|----------|
-| **Tier 1** | Opus 4.6 | **Qwen-Max** | 50 | Critical architecture, security, code review, production coding |
-| **Tier 2** | Inherit | **Inherit** | 49 | Complex tasks - uses your session's default model |
-| **Tier 3** | Sonnet 4.6 | **Qwen-Plus** | 60 | Docs, testing, debugging, API design, DX optimization |
-| **Tier 4** | Haiku 4.5 | **Qwen-Flash** | 20 | Fast operational tasks (SEO, deployment, content) |
+| **Tier 1** | Opus 4.6 / Fable 5 | **Qwen-Max** | 56 | Critical architecture, security, code review, production coding |
+| **Tier 2** | Inherit | **Inherit** | 52 | Complex tasks - uses your session's default model |
+| **Tier 3** | Sonnet 4.6 | **Qwen-Plus** | 70 | Docs, testing, debugging, API design, DX optimization |
+| **Tier 4** | Haiku 4.5 | **Qwen-Flash** | 24 | Fast operational tasks (SEO, deployment, content) |
 
 **Tier 2 Flexibility (`inherit`):**
 Agents marked `inherit` use your session's default model, letting you balance cost and capability.
@@ -355,32 +355,34 @@ Uses kubernetes-architect agent with 4 specialized skills for production-grade c
 
 ## Plugin Categories
 
-**24 categories, 77 plugins:**
+**25 categories, 92 plugins:**
 
 - 🎨 **Development** (6) - debugging, backend, frontend, multi-platform
-- 📚 **Documentation** (4) - code docs, API specs, diagrams, C4 architecture, **HADS** (Human-AI Document Standard)
-- 🔄 **Workflows** (5) - git, full-stack, TDD, **Conductor** (context-driven development), **Agent Teams** (multi-agent orchestration)
+- 📚 **Documentation** (5) - code docs, API specs, diagrams, C4 architecture, **HADS** (Human-AI Document Standard)
+- 🔄 **Workflows** (8) - git, full-stack, TDD, **Conductor** (context-driven development), **Agent Teams** (multi-agent orchestration)
 - ✅ **Testing** (1) - unit testing
-- 🔍 **Quality** (3) - comprehensive review, performance
-- 🤖 **AI & ML** (5) - LLM apps, agent orchestration, context, MLOps
+- 🔍 **Quality** (4) - comprehensive review, performance
+- 🛠️ **Utilities** (5) - general-purpose helpers, **skill-forge-essentials**
+- 🤖 **AI & ML** (6) - LLM apps, agent orchestration, context, MLOps, **LLM fine-tuning**
+- 🧠 **Memory** (1, external) - **pensyve** (persistent memory)
 - 📊 **Data** (2) - data engineering, data validation
 - 🗄️ **Database** (2) - database design, migrations
 - 🚨 **Operations** (4) - incident response, diagnostics, distributed debugging, observability
 - ⚡ **Performance** (2) - application performance, database/cloud optimization
 - ☁️ **Infrastructure** (5) - deployment, validation, Kubernetes, cloud, CI/CD
-- 🔒 **Security** (6) - scanning, compliance, backend/API, frontend/mobile, **block-no-verify** (git hook bypass guard)
+- 🔒 **Security** (7) - scanning, compliance, backend/API, frontend/mobile, **block-no-verify** (git hook bypass guard)
+- 🛡️ **Governance** (3) - **protect-mcp** (Cedar + signed receipts), **review-agent-governance**, **signed-audit-trails**
+- 🔄 **Modernization** (2) - legacy migration and refactoring
+- 🌐 **API** (2) - API tooling
+- 📢 **Marketing** (5) - SEO content, technical SEO, SEO analysis, content marketing, **social-publishing**
+- 💼 **Business** (5) - analytics, HR/legal, customer/sales, **operating-kit**
 - 💻 **Languages** (10) - Python, JS/TS, systems, JVM, scripting, functional, embedded
 - 🔗 **Blockchain** (1) - smart contracts, DeFi, Web3
 - 💰 **Finance** (1) - quantitative trading, risk management
 - 💳 **Payments** (1) - Stripe, PayPal, billing
 - 🎮 **Gaming** (1) - Unity, Minecraft plugins
-- 🎨 **Creative** (1) - creative tooling
 - ♿ **Accessibility** (1) - WCAG and a11y
-- 📢 **Marketing** (4) - SEO content, technical SEO, SEO analysis, content marketing
-- 💼 **Business** (4) - analytics, HR/legal, customer/sales
-- 🔌 **API** (2) - API tooling
-- 🛠️ **Utilities** (4) - general-purpose helpers
-- 🔧 **Modernization** (2) - legacy migration and refactoring
+- 🎨 **Creative** (3) - creative tooling, **brand-landingpage**, **pptx-deck-creation**
 
 [→ View complete plugin catalog](docs/plugins.md)
 
@@ -391,7 +393,7 @@ Uses kubernetes-architect agent with 4 specialized skills for production-grade c
 - **Single responsibility** - Each plugin does one thing well
 - **Minimal token usage** - Average 3.6 components per plugin
 - **Composable** - Mix and match for complex workflows
-- **100% coverage** - All 182 agents accessible across plugins
+- **100% coverage** - All 202 agents accessible across plugins
 
 ### Progressive Disclosure (Skills)
 

@@ -1,6 +1,6 @@
 {
   "name": "ui-design",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "Comprehensive UI/UX design plugin for mobile (iOS, Android, React Native) and web applications with design systems, accessibility, and modern patterns",
   "agents": "agents",
   "commands": "commands",

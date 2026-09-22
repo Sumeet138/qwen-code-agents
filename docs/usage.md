@@ -9,6 +9,25 @@ The plugin ecosystem provides two primary interfaces:
 1. **Slash Commands** - Direct invocation of tools and workflows
 2. **Natural Language** - Claude reasons about which agents to use
 
+## How Installation Actually Works
+
+The **plugin** is the unit of installation; skills and agents come along with it.
+
+1. `/plugin marketplace add wshobson/agents` registers the catalog. It loads
+   nothing into context.
+2. `/plugin install <plugin>` installs one plugin — its agents, commands, and
+   skills together. Install the 2–3 plugins that cover your domain, not
+   individual skills.
+3. **Auto-discovery operates inside what you installed.** Claude Code discovers
+   an installed plugin's skills automatically and activates them when your task
+   matches a skill's description. You never select skills by hand.
+4. `AGENTS.md` and the `docs/` catalogs are for browsing what exists; reading
+   them installs nothing.
+5. **Skills only, any agent.** `gh skill install wshobson/agents <skill>` and
+   `npx skills add wshobson/agents --skill <skill>` install one skill, without
+   its plugin's agents or commands, into Claude Code or any other agent the
+   installer supports. See [harnesses.md](./harnesses.md#skills-only-installers).
+
 ## Slash Commands
 
 Slash commands are the primary interface for working with agents and workflows. Each plugin provides namespaced commands that you can run directly.
@@ -111,6 +130,7 @@ Claude Code automatically selects and coordinates the appropriate agents based o
 | `/machine-learning-ops:ml-pipeline`     | ML training pipeline orchestration |
 | `/data-engineering:data-pipeline`       | ETL/ELT pipeline construction      |
 | `/data-engineering:data-driven-feature` | Data-driven feature development    |
+| `/dgx-spark-ops:spark-preflight`        | DGX Spark ML workload preflight with env-report.json |
 
 ### Documentation
 
@@ -166,6 +186,8 @@ Claude Code automatically selects and coordinates the appropriate agents based o
 | `/llm-application-dev:prompt-optimize`      | Prompt engineering optimization |
 | `/agent-orchestration:multi-agent-optimize` | Multi-agent optimization        |
 | `/agent-orchestration:improve-agent`        | Agent improvement workflows     |
+| `/llm-finetuning:finetune`                  | Eval-gated fine-tuning lifecycle end to end |
+| `/llm-finetuning:promote-checkpoint`        | Re-gate and export a fine-tuned checkpoint  |
 
 ### Testing & Performance
 
@@ -385,11 +407,11 @@ User: "Implement Kubernetes deployment with Helm"
 → Result: Production-grade K8s manifests with Helm charts
 ```
 
-See [Agent Skills](./agent-skills.md) for details on the 149 specialized skills.
+See [Agent Skills](./agent-skills.md) for details on the 183 specialized skills.
 
 ## See Also
 
 - [Agent Skills](./agent-skills.md) - Specialized knowledge packages
 - [Agent Reference](./agents.md) - Complete agent catalog
-- [Plugin Reference](./plugins.md) - All 77 plugins
+- [Plugin Reference](./plugins.md) - All 94 marketplace plugins
 - [Architecture](./architecture.md) - Design principles

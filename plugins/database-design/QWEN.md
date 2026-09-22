@@ -11,7 +11,7 @@ Database architecture, schema design, and SQL optimization for production system
 
 ### Skills
 
-- **postgresql**: See `skills/postgresql/SKILL.md`
+- **postgresql-table-design**: See `skills/postgresql-table-design/SKILL.md`
 
 ## Usage
 

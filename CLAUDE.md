@@ -1,13 +1,15 @@
-# Project: claude-agents
+# Project: qwen-code-agents
 
-Claude Code plugin marketplace — 75 focused plugins, 182 agents, 147 skills, 95 commands.
+Qwen Code adaptation of the claude-agents marketplace — 92 focused plugins, 202 agents, 183 skills, 105 commands.
+
+> **Fork note:** for what this fork changes and how to re-sync from upstream, read [`AGENTS.md`](AGENTS.md). This file describes the upstream content layout.
 
 ## Repository Structure
 
 ```
-claude-agents/
+qwen-code-agents/
 ├── .claude-plugin/marketplace.json   # Registry of all plugins
-├── plugins/                          # All 72 plugins
+├── plugins/                          # All 92 plugins
 │   ├── <plugin-name>/
 │   │   ├── .claude-plugin/plugin.json
 │   │   ├── agents/*.md
@@ -32,7 +34,7 @@ claude-agents/
 ---
 name: agent-name
 description: "What this agent does. Use PROACTIVELY when [trigger conditions]."
-model: opus|sonnet|haiku|inherit
+model: qwen-max|qwen-plus|qwen-flash|inherit
 color: blue|green|red|yellow|cyan|magenta # optional
 tools: Read, Grep, Glob # optional — restricts available tools
 ---

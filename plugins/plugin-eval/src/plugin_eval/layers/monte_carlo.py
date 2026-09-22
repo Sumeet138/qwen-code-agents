@@ -8,6 +8,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from plugin_eval.layers._sdk import collect_sdk_output, usage_total_tokens
 from plugin_eval.models import LayerResult
 from plugin_eval.parser import ParsedSkill, parse_skill
 from plugin_eval.stats import (
@@ -32,6 +33,7 @@ class SimResult:
     duration_ms: int
     errored: bool = False
     prompt: str = ""
+    model: str | None = None
 
 
 @dataclass
@@ -40,7 +42,6 @@ class MonteCarloConfig:
 
     n_runs: int = 50
     concurrency: int = 4
-    auth: str = "max"
     seed: int = 42
     progress_callback: Callable[[int, int], None] | None = None
 
@@ -50,43 +51,54 @@ class MonteCarloConfig:
 # ---------------------------------------------------------------------------
 
 
-async def run_simulation(skill_content: str, prompt: str, auth: str) -> SimResult:
+def _simresult_from_messages(messages: list, prompt: str, duration_ms: int) -> SimResult:
+    """Build a SimResult from SDK messages (assistant text => activation + quality)."""
+    output = collect_sdk_output(messages)
+    tokens = usage_total_tokens(output.usage)
+    # An errored run carries diagnostic text, not skill output, so it must not
+    # register as activation. Counting it inflates the activation rate and puts
+    # this metric at odds with output consistency and token efficiency (both
+    # already drop errored runs) and with the exception path below, which
+    # reports activated=False for a run that failed before producing anything.
+    raw = "" if output.errored else (output.text.strip() or (output.result or "").strip())
+    activated = bool(raw)
+    quality_score = min(1.0, len(raw) / 500) if activated else 0.0
+    return SimResult(
+        activated=activated,
+        quality_score=quality_score,
+        tokens=tokens,
+        duration_ms=duration_ms,
+        errored=output.errored,
+        prompt=prompt,
+        model=output.model,
+    )
+
+
+async def run_simulation(skill_content: str, prompt: str) -> SimResult:
     """Run a single simulation via Agent SDK. Returns SimResult. On error, errored=True."""
     try:
-        import claude_agent_sdk as sdk  # type: ignore[import-untyped]
-
-        result_text = ""
-        activated = False
-        tokens = 0
-
         import time
 
-        start = time.monotonic()
-
-        async for event in sdk.stream(
-            prompt,
-            system=f"You are evaluating a skill. Apply the skill if appropriate.\n\n{skill_content}",
-        ):
-            if hasattr(event, "text"):
-                result_text += event.text
-                activated = True
-            if hasattr(event, "usage"):
-                tokens = getattr(event.usage, "total_tokens", 0)
-
-        duration_ms = int((time.monotonic() - start) * 1000)
-
-        # Estimate quality score from response length and coherence heuristic
-        quality_score = min(1.0, len(result_text) / 500) if activated else 0.0
-
-        return SimResult(
-            activated=activated,
-            quality_score=quality_score,
-            tokens=tokens,
-            duration_ms=duration_ms,
-            prompt=prompt,
+        from claude_agent_sdk import (  # type: ignore[import-untyped]
+            ClaudeAgentOptions,
+            query,
         )
 
-    except Exception:
+        full_prompt = (
+            f"You are evaluating a skill. Apply the skill if appropriate.\n\n"
+            f"{skill_content}\n\n{prompt}"
+        )
+        start = time.monotonic()
+        messages = [
+            message
+            async for message in query(
+                prompt=full_prompt,
+                options=ClaudeAgentOptions(allowed_tools=[]),
+            )
+        ]
+        duration_ms = int((time.monotonic() - start) * 1000)
+        return _simresult_from_messages(messages, prompt, duration_ms)
+    except Exception:  # noqa: BLE001 — a failed run is recorded as errored, not fatal
         return SimResult(
             activated=False,
             quality_score=0.0,
@@ -118,7 +130,10 @@ class MonteCarloAnalyzer:
         skill = skill_or_dir if isinstance(skill_or_dir, ParsedSkill) else parse_skill(skill_or_dir)
         skill_content = skill.raw_content
 
-        prompts = await self._generate_prompts(skill.name, skill.description)
+        model_usage: dict[str, int] = {}
+        prompts = await self._generate_prompts(
+            skill.name, skill.description, usage_sink=model_usage
+        )
 
         # Repeat prompts to reach n_runs
         repeated: list[str] = []
@@ -128,6 +143,11 @@ class MonteCarloAnalyzer:
 
         results = await self._run_all(skill_content, prompts_to_run)
         stats = self._compute_statistics(results)
+
+        # Aggregate per-sim token usage by the model the SDK actually reported.
+        for r in results:
+            if r.model and r.tokens:
+                model_usage[r.model] = model_usage.get(r.model, 0) + r.tokens
 
         triggering = stats["triggering"]
         output_consistency = stats["output_consistency"]
@@ -159,6 +179,7 @@ class MonteCarloAnalyzer:
             "n_runs": len(results),
             "n_activated": sum(1 for r in results if r.activated),
             "n_errored": sum(1 for r in results if r.errored),
+            "model_usage": model_usage,
         }
 
         return LayerResult(
@@ -172,7 +193,9 @@ class MonteCarloAnalyzer:
     # Prompt generation
     # ------------------------------------------------------------------
 
-    async def _generate_prompts(self, name: str, description: str) -> list[str]:
+    async def _generate_prompts(
+        self, name: str, description: str, usage_sink: dict[str, int] | None = None
+    ) -> list[str]:
         """Use Haiku to generate 15 varied prompts. Falls back to basic variants."""
         try:
             from plugin_eval.layers.judge import query_llm
@@ -188,7 +211,7 @@ class MonteCarloAnalyzer:
                 f"Description: {description}\n\n"
                 f'Return a JSON array of 15 strings. Example: ["prompt 1", "prompt 2", ...]'
             )
-            result = await query_llm(prompt, system=system, model=model)
+            result = await query_llm(prompt, system=system, model=model, usage_sink=usage_sink)
             if isinstance(result, list) and len(result) >= 5:
                 return [str(p) for p in result[:15]]
         except Exception:
@@ -231,7 +254,7 @@ class MonteCarloAnalyzer:
         async def run_one(prompt: str) -> SimResult:
             nonlocal completed
             async with self._sem:
-                result = await run_simulation(skill_content, prompt, self.config.auth)
+                result = await run_simulation(skill_content, prompt)
                 completed += 1
                 if self.config.progress_callback:
                     self.config.progress_callback(completed, total)

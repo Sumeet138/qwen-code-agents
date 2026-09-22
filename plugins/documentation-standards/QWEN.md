@@ -1,11 +1,12 @@
 # documentation-standards
 
-HADS (Human-AI Document Standard) — semantic tagging convention for writing documentation that works efficiently for both human readers and AI models. Reduces token consumption and hallucination risk by separating machine-critical facts from human context.
+HADS (Human-AI Document Standard) — semantic tagging convention for writing documentation that works efficiently for both human readers and AI models — plus the grounded-vault pattern: a raw/wiki/archive knowledge store with per-claim provenance links and git fingerprints for zero-token drift detection.
 
 ## Components
 
 ### Skills
 
+- **grounded-vault**: See `skills/grounded-vault/SKILL.md`
 - **hads**: See `skills/hads/SKILL.md`
 
 ## Usage

@@ -1,6 +1,15 @@
 # Agent Skills
 
-Agent Skills are modular packages that extend Claude's capabilities with specialized domain knowledge, following Anthropic's [Agent Skills Specification](https://github.com/anthropics/skills/blob/main/agent_skills_spec.md). This plugin ecosystem includes **149 specialized skills** across 36 plugins, enabling progressive disclosure and efficient token usage.
+Agent Skills are modular packages that extend Claude's capabilities with specialized domain knowledge, following Anthropic's [Agent Skills Specification](https://github.com/anthropics/skills/blob/main/agent_skills_spec.md). This plugin ecosystem includes **183 local specialized skills** across 51 plugins, enabling progressive disclosure and efficient token usage.
+
+Install any skill on its own, into any agent, with the Agent Skills installers:
+
+```bash
+gh skill install wshobson/agents <skill>              # GitHub CLI 2.90+
+npx skills add wshobson/agents --skill <skill>        # vercel-labs/skills
+```
+
+Naming, pinning, and gotchas: [harnesses.md](./harnesses.md#skills-only-installers).
 
 ## Overview
 
@@ -68,7 +77,7 @@ Skills provide Claude with deep expertise in specific domains without loading ev
 
 | Skill                       | Description                                                                             |
 | --------------------------- | --------------------------------------------------------------------------------------- |
-| **defi-protocol-templates** | Implement DeFi protocols with templates for staking, AMMs, governance, and lending      |
+| **defi-protocol-templates** | Implement DeFi protocols with templates for staking, AMMs, governance, and flash loans      |
 | **nft-standards**           | Implement NFT standards (ERC-721, ERC-1155) with metadata and marketplace integration   |
 | **solidity-security**       | Master smart contract security to prevent vulnerabilities and implement secure patterns |
 | **web3-testing**            | Test smart contracts using Hardhat and Foundry with unit tests and mainnet forking      |
@@ -176,6 +185,24 @@ Skills provide Claude with deep expertise in specific domains without loading ev
 | ------------------------ | ---------------------------------------------------------------------------- |
 | **kpi-dashboard-design** | Design executive dashboards with actionable KPIs and drill-down capabilities |
 | **data-storytelling**    | Transform data insights into compelling narratives for stakeholders          |
+
+### Before You Build (1 skill)
+
+| Skill                | Description                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **before-you-build** | Review demand, positioning, monetization, retention, trust, distribution, and feature-adoption risk before implementation starts |
+
+### Avoid AI Writing (1 skill)
+
+| Skill                | Description                                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **avoid-ai-writing** | Audit and rewrite prose that reads as machine-generated, with detect-only, rewrite, and edit-in-place modes   |
+
+### Superself (1 skill)
+
+| Skill         | Description                                                                                                                   |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **superself** | Drive the Superself `self` CLI: read `self context` at session start, attach work to a unit, report with evidence, close with proof |
 
 ### Data Engineering (4 skills)
 
@@ -306,11 +333,12 @@ Skills provide Claude with deep expertise in specific domains without loading ev
 | ----------------------------- | ----------------------------------------------------------------- |
 | **postgresql-table-design**   | Design and review PostgreSQL-specific schemas with proper modeling |
 
-### Documentation Standards (1 skill)
+### Documentation Standards (2 skills)
 
 | Skill    | Description                                                                                   |
 | -------- | --------------------------------------------------------------------------------------------- |
 | **hads** | HADS (Human-AI Document Standard) — semantic Markdown tagging for token-efficient AI reading |
+| **grounded-vault** | raw/wiki/archive knowledge store with per-claim source links and git fingerprints for zero-token drift checks |
 
 ### .NET Contribution (1 skill)
 
@@ -329,6 +357,51 @@ Skills provide Claude with deep expertise in specific domains without loading ev
 | Skill                      | Description                                                                                      |
 | -------------------------- | ------------------------------------------------------------------------------------------------ |
 | **block-no-verify-hook**   | PreToolUse hook preventing AI agents from skipping git pre-commit hooks via bypass flags         |
+
+### Protect MCP (1 skill)
+
+| Skill                  | Description                                                                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **protect-mcp-setup**  | Configure Cedar policy enforcement and Ed25519 signed receipts for tool calls; example policies for research/dev/production  |
+
+### Social Publishing (1 skill)
+
+| Skill                  | Description                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **social-publishing**  | Schedule and publish social media posts across 13 platforms via the SocialClaw API                                       |
+
+### LLM Fine-Tuning (10 skills)
+
+| Skill                           | Description                                                                              |
+| ------------------------------- | ---------------------------------------------------------------------------------------- |
+| **eval-harness-first**          | Build the eval harness that gates every run: golden sets, graders, judge calibration     |
+| **finetuning-method-selection** | Decide whether to fine-tune at all and route to the right method and base model          |
+| **dataset-curation**            | Prepare, format, and validate datasets for SFT and preference training                   |
+| **lora-qlora-recipes**          | Configure LoRA/QLoRA supervised fine-tuning with best-practice hyperparameters           |
+| **preference-optimization**     | Align a fine-tuned model with preference data using DPO, ORPO, KTO, or SimPO             |
+| **grpo-rlvr-training**          | Train reasoning and verifiable-task behavior with GRPO and RLVR reward functions         |
+| **vision-sft**                  | Fine-tune vision-language models with supervised learning on image+text data             |
+| **trace-to-training-data**      | Convert eval traces and production logs into SFT examples and preference pairs           |
+| **checkpoint-promotion**        | Gate checkpoints with drift budgets, paired comparison, and forgetting checks            |
+| **quantized-export**            | Export a promoted model as merged safetensors, LoRA-only, GGUF with imatrix, or FP8      |
+
+### PPTX Deck Creation (5 skills)
+
+| Skill                            | Description                                                                              |
+| -------------------------------- | ---------------------------------------------------------------------------------------- |
+| **pptx-deck-context**            | Prepare the narrative, sources, and design context for a new editable PPTX deck          |
+| **pptx-slide-specification**     | Author or repair a coordinate-explicit JSON specification for an editable PPTX deck      |
+| **pptx-visual-assets**           | Select and place approved icons, images, SVGs, diagrams, and infographics                |
+| **pptx-reference-deck-analysis** | Analyze a reference PPTX read-only for structure, theme, typography, and layout rhythm   |
+| **pptx-quality-gates**           | Validate or repair an editable PPTX deck for geometry, accessibility, and editability    |
+
+### DGX Spark Ops (3 skills)
+
+| Skill                        | Description                                                                              |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| **spark-environment-setup**  | Set up ML training/inference environments on NVIDIA DGX Spark (GB10, aarch64, CUDA 13)  |
+| **spark-training-gotchas**   | Preflight and diagnose the ten known failure modes for ML training on DGX Spark         |
+| **spark-memory-thermal-ops** | Manage unified memory and thermals during long-running ML jobs on GB10                  |
 
 ## How Skills Work
 
@@ -374,7 +447,7 @@ fastapi-templates skill → Supplies production-ready templates
 
 ## Specification Compliance
 
-All 149 skills follow the [Agent Skills Specification](https://agentskills.io/specification):
+All 183 skills follow the [Agent Skills Specification](https://agentskills.io/specification):
 
 - ✓ Required `name` field (hyphen-case)
 - ✓ Required `description` field with "Use when" clause
@@ -388,14 +461,17 @@ To add a skill to a plugin:
 
 1. Create `plugins/{plugin-name}/skills/{skill-name}/SKILL.md`
 2. Add YAML frontmatter:
+
    ```yaml
    ---
    name: skill-name
    description: What the skill does. Use when [activation trigger].
    ---
    ```
+
 3. Write comprehensive skill content using progressive disclosure
 4. Add skill path to `marketplace.json`:
+
    ```json
    {
      "name": "plugin-name",

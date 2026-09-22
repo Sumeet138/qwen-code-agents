@@ -1,6 +1,6 @@
 # Qwen Code Setup Guide
 
-Use this repository's 76 plugins, 182 agents, 149 skills, and 96 commands with **Qwen Code** instead of Claude Code.
+Use this repository's 92 plugins, 202 agents, 183 skills, and 105 commands with **Qwen Code** instead of Claude Code.
 
 ## Prerequisites
 
@@ -50,7 +50,7 @@ python tools/convert-to-qwen.py --restore
 ### 4. Install Extensions
 
 ```bash
-# Install ALL 76 plugins
+# Install ALL 92 plugins
 python tools/install-qwen-extensions.py
 
 # Or install specific plugins only
@@ -127,9 +127,9 @@ qwen
 
 | Component | Count | Changes Made |
 |---|---|---|
-| `qwen-extension.json` | 76 | Created from `.claude-plugin/plugin.json` |
+| `qwen-extension.json` | 92 | Created from `.claude-plugin/plugin.json` |
 | Agent model references | 130 | `opus->qwen-max`, `sonnet->qwen-plus`, `haiku->qwen-flash` |
-| `QWEN.md` context files | 76 | Generated per-plugin context documents |
+| `QWEN.md` context files | 92 | Generated per-plugin context documents |
 | Agent content | 0 | No changes - system prompts are model-agnostic |
 | Skill content | 0 | No changes - knowledge packages work as-is |
 | Command content | 0 | No changes - workflow definitions are portable |

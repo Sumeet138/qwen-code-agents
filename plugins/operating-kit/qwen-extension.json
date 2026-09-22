@@ -1,0 +1,6 @@
+{
+  "name": "operating-kit",
+  "version": "1.0.0",
+  "description": "Portable operating method: session lifecycle agents (session-start/end), pre-ship code review, deploy with live verification, and production log health check. All agents use {{placeholders}} that adapt to your project.",
+  "agents": "agents"
+}

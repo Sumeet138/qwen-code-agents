@@ -1,7 +1,7 @@
 {
   "name": "plugin-eval",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.1.1",
+  "description": "Three-layer quality evaluation framework for Claude Code plugins with Elo ranking",
   "agents": "agents",
   "commands": "commands",
   "skills": "skills"

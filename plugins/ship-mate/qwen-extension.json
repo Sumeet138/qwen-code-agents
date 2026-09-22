@@ -1,0 +1,8 @@
+{
+  "name": "ship-mate",
+  "version": "1.0.1",
+  "description": "Your AI development teammate. Turns a story file into a shipped, reviewed, and tested feature via orchestrator → architect → developer → PR reviewer → QA → Playwright.",
+  "agents": "agents",
+  "commands": "commands",
+  "skills": "skills"
+}

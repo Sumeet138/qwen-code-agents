@@ -1,6 +1,6 @@
 # llm-application-dev
 
-LLM application development with LangGraph, RAG systems, vector search, and AI agent architectures for Claude 4.6 and GPT-5.2
+LLM application development with LangGraph, RAG systems, vector search, and AI agent architectures for Claude 4.6 and GPT-5.4
 
 ## Components
 

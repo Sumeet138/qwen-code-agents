@@ -17,6 +17,7 @@ ML model training pipelines, hyperparameter tuning, model deployment automation,
 ### Skills
 
 - **ml-pipeline-workflow**: See `skills/ml-pipeline-workflow/SKILL.md`
+- **recsys-pipeline-architect**: See `skills/recsys-pipeline-architect/SKILL.md`
 
 ## Usage
 

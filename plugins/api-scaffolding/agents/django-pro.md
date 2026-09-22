@@ -1,5 +1,5 @@
 ---
-name: django-pro
+name: api-scaffolding-django-pro
 description: Master Django 5.x with async views, DRF, Celery, and Django Channels. Build scalable web applications with proper architecture, testing, and deployment. Use PROACTIVELY for Django development, ORM optimization, or complex Django patterns.
 model: qwen-max
 ---
@@ -106,7 +106,7 @@ Expert Django developer specializing in Django 5.x best practices, scalable arch
 - Payment processing (Stripe, PayPal, etc.)
 - Email backends and transactional email services
 - SMS and notification services
-- Cloud storage (AWS S3, Google Cloud Storage, Azure)
+- Cloud storage (AWS S3, Google Cloud Storage, Azure Blob Storage, OCI Object Storage)
 - Search engines (Elasticsearch, Algolia)
 - Monitoring and logging (Sentry, DataDog, New Relic)
 

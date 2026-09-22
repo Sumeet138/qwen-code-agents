@@ -7,7 +7,9 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
+from plugin_eval.layers._sdk import collect_sdk_output, usage_total_tokens
 from plugin_eval.models import LayerResult
 from plugin_eval.parser import ParsedSkill, parse_skill
 
@@ -37,8 +39,8 @@ Score 1.0 — Perfectly calibrated: Minimal surface area, maximum cohesion, idea
 
 _MODEL_MAP: dict[str, str] = {
     "haiku": "claude-haiku-4-5-20251001",
-    "sonnet": "claude-sonnet-4-6",
-    "opus": "claude-opus-4-6",
+    "sonnet": "claude-sonnet-5",
+    "opus": "claude-opus-4-8",
 }
 
 
@@ -52,50 +54,82 @@ def _resolve_model(tier: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-async def query_llm(prompt: str, system: str = "", model: str = "claude-sonnet-4-6") -> dict:
+def _extract_and_parse(messages: list) -> dict:
+    """Pull assistant text from SDK messages and parse JSON.
+
+    Returns the parsed dict on success, or an {"unmeasured": True, ...} marker
+    when the run errored, produced no text, or returned non-JSON.
+    """
+    output = collect_sdk_output(messages)
+    text = output.text.strip()
+    raw = text or (output.result or "")
+    if output.errored:
+        return {
+            "unmeasured": True,
+            "error": "judge LLM call returned an error result",
+            **({"raw": raw} if raw else {}),
+        }
+    if not raw.strip():
+        return {"unmeasured": True, "error": "judge LLM returned no text"}
+
+    stripped = raw.strip()
+    fence_match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", stripped)
+    if fence_match:
+        stripped = fence_match.group(1).strip()
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        return {"unmeasured": True, "error": "judge response was not valid JSON", "raw": raw}
+
+
+async def query_llm(
+    prompt: str,
+    system: str = "",
+    model: str = "claude-sonnet-5",
+    usage_sink: dict[str, int] | None = None,
+) -> dict:
     """Call Claude via the Agent SDK and return a parsed JSON dict.
 
-    Raises RuntimeError if claude-agent-sdk is not installed.
+    Degrades to an {"unmeasured": True, ...} marker (never raises) when the SDK
+    is missing or the call fails, so the judge layer can be skipped instead of
+    crashing the whole evaluation.
+
+    When `usage_sink` is given, the call's token usage (if any) is added to it
+    under the SDK-reported model (falling back to the requested `model` if the
+    stream reported none), letting callers accumulate per-model usage across
+    calls even when routing or fallback selects a different model.
     """
     try:
         from claude_agent_sdk import (  # type: ignore[import-untyped]
             ClaudeAgentOptions,
-            ResultMessage,
             query,
         )
-    except ImportError as exc:
-        raise RuntimeError(
-            "claude-agent-sdk is required for LLM judge. Install with: pip install plugin-eval[llm]"
-        ) from exc
+    except ImportError:
+        return {
+            "unmeasured": True,
+            "error": "claude-agent-sdk not installed (uv sync --extra llm)",
+        }
 
-    full_prompt = prompt
-    if system:
-        full_prompt = f"{system}\n\n{prompt}"
-
-    result_text = ""
-    async for message in query(
-        prompt=full_prompt,
-        options=ClaudeAgentOptions(
-            model=model,
-            allowed_tools=[],
-        ),
-    ):
-        if isinstance(message, ResultMessage):
-            # ResultMessage contains the final text
-            for block in getattr(message, "content", []):
-                if hasattr(block, "text"):
-                    result_text += block.text
-
-    # Try to parse JSON — handles raw JSON or JSON inside a markdown code block
-    stripped = result_text.strip()
-    fence_match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", stripped)
-    if fence_match:
-        stripped = fence_match.group(1).strip()
-
+    full_prompt = f"{system}\n\n{prompt}" if system else prompt
     try:
-        return json.loads(stripped)
-    except json.JSONDecodeError:
-        return {"raw": result_text, "score": 0.5}
+        messages = [
+            message
+            async for message in query(
+                prompt=full_prompt,
+                options=ClaudeAgentOptions(model=model, allowed_tools=[]),
+            )
+        ]
+    except Exception as exc:  # noqa: BLE001 — judge is best-effort; degrade to unmeasured
+        return {"unmeasured": True, "error": f"judge LLM call failed: {exc}"}
+
+    if usage_sink is not None:
+        output = collect_sdk_output(messages)
+        tokens = usage_total_tokens(output.usage)
+        if tokens:
+            usage_model = output.model or model
+            usage_sink[usage_model] = usage_sink.get(usage_model, 0) + tokens
+
+    return _extract_and_parse(messages)
 
 
 # ---------------------------------------------------------------------------
@@ -103,12 +137,22 @@ async def query_llm(prompt: str, system: str = "", model: str = "claude-sonnet-4
 # ---------------------------------------------------------------------------
 
 
+def _measured_score(result: Any, key: str) -> float | None:
+    """Return the numeric score for an assessment, or None if it was unmeasured.
+
+    Tolerates non-dict JSON (e.g. a list or bare string) by treating it as
+    unmeasured rather than raising.
+    """
+    if not isinstance(result, dict) or result.get("unmeasured"):
+        return None
+    val = result.get(key)
+    return float(val) if isinstance(val, (int, float)) else None
+
+
 @dataclass
 class JudgeConfig:
     judges: int = 1
-    auth: str = "max"
     concurrency: int = 4
-    model_tier: str = "auto"
 
 
 # ---------------------------------------------------------------------------
@@ -130,34 +174,36 @@ class JudgeAnalyzer:
     async def analyze_skill(self, skill_or_dir: Path | ParsedSkill) -> LayerResult:
         """Run all 4 assessments concurrently and return a LayerResult."""
         skill = skill_or_dir if isinstance(skill_or_dir, ParsedSkill) else parse_skill(skill_or_dir)
+        # Local to this call so concurrent/repeated analyze_skill invocations on
+        # the same analyzer instance never mix or accumulate token counts.
+        model_usage: dict[str, int] = {}
         triggering, orchestration, output_quality, scope = await asyncio.gather(
-            self.assess_triggering(skill),
-            self.assess_orchestration(skill),
-            self.assess_output_quality(skill),
-            self.assess_scope(skill),
+            self.assess_triggering(skill, model_usage),
+            self.assess_orchestration(skill, model_usage),
+            self.assess_output_quality(skill, model_usage),
+            self.assess_scope(skill, model_usage),
         )
 
-        # Weighted composite: triggering 0.30, orchestration 0.30, output 0.25, scope 0.15
-        score = (
-            triggering.get("f1", 0.5) * 0.30
-            + orchestration.get("score", 0.5) * 0.30
-            + output_quality.get("score", 0.5) * 0.25
-            + scope.get("score", 0.5) * 0.15
-        )
-        score = max(0.0, min(1.0, score))
-
-        sub_scores: dict[str, float] = {
-            "triggering_accuracy": triggering.get("f1", 0.5),
-            "orchestration_fitness": orchestration.get("score", 0.5),
-            "output_quality": output_quality.get("score", 0.5),
-            "scope_calibration": scope.get("score", 0.5),
+        raw_scores: dict[str, float | None] = {
+            "triggering_accuracy": _measured_score(triggering, "f1"),
+            "orchestration_fitness": _measured_score(orchestration, "score"),
+            "output_quality": _measured_score(output_quality, "score"),
+            "scope_calibration": _measured_score(scope, "score"),
         }
+        sub_scores: dict[str, float] = {k: v for k, v in raw_scores.items() if v is not None}
+        unmeasured = sorted(k for k, v in raw_scores.items() if v is None)
+
+        # Layer score is display-only; the composite engine blends per-dimension
+        # sub_scores (omitted keys are excluded). Use the mean of measured dims.
+        score = sum(sub_scores.values()) / len(sub_scores) if sub_scores else 0.0
 
         metadata: dict = {
             "triggering": triggering,
             "orchestration": orchestration,
             "output_quality": output_quality,
             "scope": scope,
+            "unmeasured": unmeasured,
+            "model_usage": model_usage,
         }
 
         return LayerResult(
@@ -171,7 +217,9 @@ class JudgeAnalyzer:
     # Individual assessments
     # ------------------------------------------------------------------
 
-    async def assess_triggering(self, skill: Path | ParsedSkill) -> dict:
+    async def assess_triggering(
+        self, skill: Path | ParsedSkill, usage_sink: dict[str, int] | None = None
+    ) -> dict:
         """Generate 10 synthetic prompts and classify triggering accuracy via Haiku."""
         if isinstance(skill, Path):
             skill = parse_skill(skill)
@@ -202,9 +250,11 @@ Return JSON matching this schema:
 }}"""
 
         async with self._sem:
-            return await query_llm(prompt, system=system, model=model)
+            return await query_llm(prompt, system=system, model=model, usage_sink=usage_sink)
 
-    async def assess_orchestration(self, skill: Path | ParsedSkill) -> dict:
+    async def assess_orchestration(
+        self, skill: Path | ParsedSkill, usage_sink: dict[str, int] | None = None
+    ) -> dict:
         """Rate orchestration fitness using an anchored rubric via Sonnet."""
         if isinstance(skill, Path):
             skill = parse_skill(skill)
@@ -235,9 +285,11 @@ Return JSON:
 }}"""
 
         async with self._sem:
-            return await query_llm(prompt, system=system, model=model)
+            return await query_llm(prompt, system=system, model=model, usage_sink=usage_sink)
 
-    async def assess_output_quality(self, skill: Path | ParsedSkill) -> dict:
+    async def assess_output_quality(
+        self, skill: Path | ParsedSkill, usage_sink: dict[str, int] | None = None
+    ) -> dict:
         """Simulate 3 tasks and judge output quality via Sonnet."""
         if isinstance(skill, Path):
             skill = parse_skill(skill)
@@ -264,9 +316,11 @@ Return JSON:
 }}"""
 
         async with self._sem:
-            return await query_llm(prompt, system=system, model=model)
+            return await query_llm(prompt, system=system, model=model, usage_sink=usage_sink)
 
-    async def assess_scope(self, skill: Path | ParsedSkill) -> dict:
+    async def assess_scope(
+        self, skill: Path | ParsedSkill, usage_sink: dict[str, int] | None = None
+    ) -> dict:
         """Evaluate scope calibration using an anchored rubric via Sonnet."""
         if isinstance(skill, Path):
             skill = parse_skill(skill)
@@ -293,4 +347,4 @@ Return JSON:
 }}"""
 
         async with self._sem:
-            return await query_llm(prompt, system=system, model=model)
+            return await query_llm(prompt, system=system, model=model, usage_sink=usage_sink)

@@ -5,17 +5,22 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from plugin_eval.layers.harness_portability import (
+    score_skill_portability,
+)
 from plugin_eval.models import AntiPattern, LayerResult
 from plugin_eval.parser import ParsedAgent, ParsedSkill, parse_plugin, parse_skill
 
-# Weights for skill sub-scores
+# Weights for skill sub-scores. Rebalanced from original to make room for
+# harness_portability (~6% weight) without changing relative order.
 _SKILL_WEIGHTS = {
-    "frontmatter_quality": 0.35,
-    "orchestration_wiring": 0.25,
-    "progressive_disclosure": 0.15,
+    "frontmatter_quality": 0.32,
+    "orchestration_wiring": 0.23,
+    "progressive_disclosure": 0.14,
     "structural_completeness": 0.10,
-    "token_efficiency": 0.10,
-    "ecosystem_coherence": 0.05,
+    "token_efficiency": 0.09,
+    "ecosystem_coherence": 0.06,
+    "harness_portability": 0.06,
 }
 
 # MUST/NEVER/ALWAYS threshold for OVER_CONSTRAINED
@@ -27,8 +32,42 @@ def anti_pattern_penalty(count: int) -> float:
     return max(0.5, 1.0 - 0.05 * count)
 
 
+def _skill_uses_description_trigger(skill: ParsedSkill) -> bool:
+    """Return True if the skill relies on its description to be auto-invoked.
+
+    Skills that opt out of model-driven invocation (`disable-model-invocation:
+    true`) or that auto-load on a path glob (`paths:` frontmatter) use a
+    different trigger mechanism and should not be checked for a "Use when …"
+    phrase in the description.
+    """
+    fm = skill.frontmatter
+    if fm.get("disable-model-invocation") is True:
+        return False
+    paths = fm.get("paths")
+    return not (isinstance(paths, str) and paths != "")
+
+
 # Line count threshold for BLOATED_SKILL (no references/ dir)
 _BLOATED_LINE_THRESHOLD = 800
+
+# Canonical trigger phrasings the model can use to decide when to invoke a skill.
+# Matches:
+#   - Imperative second-person: "Use when …", "Use this skill when …"
+#   - Third-person canonical (Anthropic plugin-dev recommends this form):
+#     "This skill should be used when …", "Used when …"
+#   - Prepositional temporal triggers commonly used in self-audit / hook-adjacent
+#     skills: "Use after …", "Use before …", "Use immediately before …",
+#     "Use whenever …", "Used after …", etc.
+#   - Explicit auto-load self-documentation: "Auto-loads when …"
+#   - Existing explicit markers: "Use proactively", "Trigger when …"
+_TRIGGER_PATTERN = re.compile(
+    r"\b(?:should\s+be\s+)?used?\s+(?:this\s+skill\s+)?(?:immediately\s+)?"
+    r"(?:when|after|before|whenever)\b"
+    r"|\buse\s+proactively\b"
+    r"|\btrigger(?:s)?\s+(?:when|on)\b"
+    r"|\bauto[-\s]?loads?\s+(?:when|on)\b",
+    re.IGNORECASE,
+)
 
 
 class StaticAnalyzer:
@@ -50,7 +89,11 @@ class StaticAnalyzer:
             "structural_completeness": self._score_structural_completeness(skill),
             "token_efficiency": self._score_token_efficiency(skill),
             "ecosystem_coherence": self._score_ecosystem_coherence(skill),
+            "harness_portability": score_skill_portability(skill),
         }
+        # Portability findings drive the sub-score above; we deliberately do NOT also
+        # push them into `anti_patterns` to avoid double-counting (sub-score loss +
+        # multiplicative anti-pattern penalty for the same defect).
 
         raw_score = sum(sub_scores[name] * weight for name, weight in _SKILL_WEIGHTS.items())
         penalty = anti_pattern_penalty(len(anti_patterns))
@@ -129,17 +172,25 @@ class StaticAnalyzer:
                 )
             )
 
-        # MISSING_TRIGGER: no "Use when..." or "Use this skill when..." phrasing
-        trigger_pattern = (
-            r"\buse\s+(?:this\s+skill\s+)?when\b|\buse\s+proactively\b|\btrigger\s+when\b"
-        )
-        if not re.search(trigger_pattern, skill.description, re.IGNORECASE):
+        # MISSING_TRIGGER: no recognised trigger phrasing in the description.
+        # See `_TRIGGER_PATTERN` for the full list of accepted forms (imperative,
+        # third-person canonical, prepositional, auto-load, etc.).
+        # Only applies to skills the model is expected to auto-invoke from the
+        # description. Skills that are slash-only (`disable-model-invocation:
+        # true`) or path-triggered (`paths:` frontmatter) use a different
+        # invocation mechanism and should not be penalised for lacking a
+        # description-level trigger phrase.
+        if _skill_uses_description_trigger(skill) and not _TRIGGER_PATTERN.search(
+            skill.description
+        ):
             patterns.append(
                 AntiPattern(
                     flag="MISSING_TRIGGER",
                     description=(
-                        'Skill description lacks a "Use when..." trigger phrase. '
-                        "Without it, the model cannot determine when to invoke the skill."
+                        "Skill description lacks a recognised trigger phrase "
+                        '(e.g. "Use when …", "This skill should be used when …", '
+                        '"Use after …", "Auto-loads when …"). '
+                        "Without one, the model cannot determine when to invoke the skill."
                     ),
                     severity=0.15,
                 )
@@ -182,6 +233,8 @@ class StaticAnalyzer:
         skill_parent = skill.path.parent  # skills/ dir
         for ref in skill.cross_references:
             ref_path = skill_parent / ref
+            if not ref_path.exists() and ref.startswith("sub-skills/"):
+                ref_path = skill.path / ref
             if not ref_path.exists():
                 patterns.append(
                     AntiPattern(
@@ -412,8 +465,9 @@ class StaticAnalyzer:
         score = 0.0
         desc_lower = description.lower()
 
-        # "Use when" / "Use this skill when" phrases (0.25)
-        if re.search(r"\buse\s+(this\s+skill\s+)?when\b", desc_lower):
+        # Canonical trigger phrasings (0.25). Shares the module-level pattern
+        # used by MISSING_TRIGGER so that broadening one broadens both.
+        if _TRIGGER_PATTERN.search(description):
             score += 0.25
 
         # "Use PROACTIVELY" or "proactively" (0.15)
@@ -426,7 +480,12 @@ class StaticAnalyzer:
 
         # Specificity bonus: multiple concrete contexts listed (0.20)
         # Count comma-separated or "or"-separated use cases in description
-        use_cases = len(re.findall(r",\s*(?:or\s+)?(?:when|for|during|implementing|building|creating|debugging|testing|deploying|configuring|setting up)", desc_lower))
+        use_cases = len(
+            re.findall(
+                r",\s*(?:or\s+)?(?:when|for|during|implementing|building|creating|debugging|testing|deploying|configuring|setting up)",
+                desc_lower,
+            )
+        )
         if use_cases >= 3:
             score += 0.20
         elif use_cases >= 1:
